@@ -1,0 +1,4 @@
+title = "DevOps_CICD gitleaks config"
+
+[extend]
+useDefault = true
