@@ -8,11 +8,11 @@
     - name: Apply deployment
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('template', '../k8s/deployment.yaml.j2') | from_yaml }}"
+        template: "{{ playbook_dir }}/../k8s/deployment.yaml.j2"
         wait: true
         wait_timeout: 300
 
     - name: Apply service
       kubernetes.core.k8s:
         state: present
-        src: ../k8s/service.yaml
+        src: "{{ playbook_dir }}/../k8s/service.yaml"
