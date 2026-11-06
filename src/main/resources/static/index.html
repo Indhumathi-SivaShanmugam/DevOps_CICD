@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Tracker</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  form { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  input { flex: 1; padding: .5rem; }
+  button { padding: .5rem .8rem; cursor: pointer; }
+  li { display: flex; justify-content: space-between; align-items: center; padding: .4rem 0; border-bottom: 1px solid #ddd; }
+  .done span { text-decoration: line-through; color: #888; }
+  #stats, footer { color: #555; font-size: .9rem; margin: .8rem 0; }
+</style>
+</head>
+<body>
+<h1>Task Tracker</h1>
+<form id="form">
+  <input id="title" placeholder="New task..." maxlength="100" required>
+  <button>Add</button>
+</form>
+<div id="stats"></div>
+<ul id="list" style="list-style:none;padding:0"></ul>
+<footer id="info"></footer>
+<script>
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  return r.status === 204 ? null : r.json();
+}
+async function refresh() {
+  const tasks = await api('/api/tasks');
+  const s = await api('/api/tasks/stats');
+  document.getElementById('stats').textContent =
+    `Total: ${s.total} | Done: ${s.completed} | Pending: ${s.pending}`;
+  const ul = document.getElementById('list');
+  ul.innerHTML = '';
+  for (const t of tasks) {
+    const li = document.createElement('li');
+    if (t.completed) li.className = 'done';
+    const span = document.createElement('span');
+    span.textContent = t.title;
+    const box = document.createElement('div');
+    if (!t.completed) {
+      const b = document.createElement('button');
+      b.textContent = 'Done';
+      b.onclick = async () => { await api(`/api/tasks/${t.id}/complete`, { method: 'PUT' }); refresh(); };
+      box.appendChild(b);
+    }
+    const d = document.createElement('button');
+    d.textContent = 'Delete';
+    d.onclick = async () => { await api(`/api/tasks/${t.id}`, { method: 'DELETE' }); refresh(); };
+    box.appendChild(d);
+    li.append(span, box);
+    ul.appendChild(li);
+  }
+  const i = await api('/api/info');
+  document.getElementById('info').textContent = `Version ${i.version} | served by pod: ${i.pod}`;
+}
+document.getElementById('form').onsubmit = async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('title');
+  await api('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: title.value }) });
+  title.value = '';
+  refresh();
+};
+refresh();
+</script>
+</body>
+</html>
