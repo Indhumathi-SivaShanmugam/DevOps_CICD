@@ -8,11 +8,57 @@
     - name: Apply deployment
       kubernetes.core.k8s:
         state: present
-        template: "{{ playbook_dir }}/../k8s/deployment.yaml.j2"
         wait: true
         wait_timeout: 300
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: tasks-app
+            namespace: default
+            labels:
+              app: tasks-app
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: tasks-app
+            template:
+              metadata:
+                labels:
+                  app: tasks-app
+              spec:
+                containers:
+                  - name: tasks-app
+                    image: "{{ image }}"
+                    ports:
+                      - containerPort: 8080
+                    readinessProbe:
+                      tcpSocket:
+                        port: 8080
+                      initialDelaySeconds: 20
+                      periodSeconds: 10
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 256Mi
+                      limits:
+                        cpu: 500m
+                        memory: 512Mi
 
     - name: Apply service
       kubernetes.core.k8s:
         state: present
-        src: "{{ playbook_dir }}/../k8s/service.yaml"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: tasks-app
+            namespace: default
+          spec:
+            type: LoadBalancer
+            selector:
+              app: tasks-app
+            ports:
+              - port: 80
+                targetPort: 8080
